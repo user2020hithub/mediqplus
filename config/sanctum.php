@@ -30,11 +30,11 @@ return [
     | Sanctum Guards
     |--------------------------------------------------------------------------
     |
-    | This array contains the authentication guards that will be checked when
-    | Sanctum is trying to authenticate a request. If none of these guards
-    | are able to authenticate the request, Sanctum will use the bearer
-    | token that's present on an incoming request for authentication.
-    |
+    | Este array contiene los mecanismos de autenticación que se comprobarán cuando
+    | Sanctum intente autenticar una solicitud. Si ninguno de estos mecanismos
+    | puede autenticar la solicitud, Sanctum utilizará el token de portador
+    | presente en la solicitud entrante para la autenticación.
+
     */
 
     'guard' => ['web'],
@@ -44,10 +44,13 @@ return [
     | Expiration Minutes
     |--------------------------------------------------------------------------
     |
-    | This value controls the number of minutes until an issued token will be
-    | considered expired. This will override any values set in the token's
-    | "expires_at" attribute, but first-party sessions are not affected.
-    |
+    Este valor controla la cantidad de minutos que faltan para que un token emitido se considere
+    expirado. Esto anulará cualquier valor establecido en el atributo "expires_at" del token,
+    pero las sesiones de origen no se verán afectadas.
+
+    El expires se deja en null aquí porque el control de expiración
+    de 30 minutos / 7 días se gestiona manualmente en el AuthController
+    (Sanctum no expira tokens por sí mismo salvo que se configure aquí)
     */
 
     'expiration' => null,

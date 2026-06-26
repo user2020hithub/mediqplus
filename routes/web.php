@@ -1,52 +1,74 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Auth\TotpSetupController;
+use App\Http\Controllers\Paciente\DashboardController as PacienteDashboard;
+use App\Http\Controllers\Paciente\CitaController;
+use App\Http\Controllers\Admin\DashboardController as AdminDashboard;
+use App\Http\Controllers\Admin\MedicoController;
+use App\Http\Controllers\Admin\AgendaController;
 
-/*
-Route::get('/', function () {
-    return view('welcome');
-});
-*/
 
-/*
-|------------------------------------------------------------
-| MEDIQ+ — Rutas Base
-| Clínica TuSalud — Integrador II Sistemas — UTP
-|------------------------------------------------------------
-*/
-
-// ── Ruta raíz (redirige al login) ────────────────────────
-Route::get("/", fn() => redirect()->route("login"))->name("home");
-
-// ── Autenticación (CU-01, CU-02, CU-11) ──────────────────
-Route::prefix("auth")->name("auth.")->group(function () {
-    Route::get("/registro",  [AuthController::class, "showRegistro"])->name("registro");
-    Route::post("/registro", [AuthController::class, "registro"]);
-    Route::get("/login",     [AuthController::class, "showLogin"])->name("login");
-    Route::post("/login",    [AuthController::class, "login"]);
-    Route::post("/logout",   [AuthController::class, "logout"])->name("logout");
+// ── Autenticación (CU-01, CU-02) ───────────────────────────
+Route::prefix('auth')->name('auth.')->group(function () {
+    Route::get('/registro',  [AuthController::class, 'showRegistro'])->name('registro');
+    Route::post('/registro', [AuthController::class, 'registro']);
+    Route::get('/login',     [AuthController::class, 'showLogin'])->name('login');
+    Route::post('/login',    [AuthController::class, 'login']);
+    Route::post('/logout',   [AuthController::class, 'logout'])
+        ->middleware('auth:sanctum')->name('logout');
 });
 
-// ── Paciente (middleware: auth + rol paciente) ─────────────
-Route::prefix("paciente")->name("paciente.")
-    ->middleware(["auth", "role:paciente"])
+// ── Configuración de 2FA (CU-11) — requiere estar autenticado ──
+Route::middleware('auth:sanctum')->prefix('2fa')->name('2fa.')->group(function () {
+    Route::get('/configurar',  [TotpSetupController::class, 'mostrarConfiguracion'])->name('configurar');
+    Route::post('/confirmar',  [TotpSetupController::class, 'confirmarConfiguracion'])->name('confirmar');
+});
+
+// ── Paciente: ahora con middleware real ─────────────────────
+Route::prefix('paciente')->name('paciente.')
+    ->middleware(['auth:sanctum', 'role:paciente'])
     ->group(function () {
-        Route::get("/dashboard", fn() => view("paciente.dashboard"))->name("dashboard");
-        // CU-03, CU-04, CU-07, CU-10, CU-13 — se definen en Fase 4+
+        Route::get('/dashboard', [PacienteDashboard::class, 'index'])->name('dashboard');
+        Route::get('/citas/buscar', [CitaController::class, 'buscarDisponibilidad'])->name('citas.buscar');
+        Route::post('/citas/reservar', [CitaController::class, 'reservar'])->name('citas.reservar');
     });
 
-// ── Médico (middleware: auth + rol medico + 2FA) ───────────
-Route::prefix("medico")->name("medico.")
-    ->middleware(["auth", "role:medico", "2fa"])
+// ── Médico: middleware real + verificación de 2FA habilitado ── también puede gestionar SU PROPIA agenda (CU-06) ──
+Route::prefix('medico')->name('medico.')
+    ->middleware(['auth:sanctum', 'role:medico'])
     ->group(function () {
-        Route::get("/dashboard", fn() => view("medico.dashboard"))->name("dashboard");
-        // CU-04, CU-06 — se definen en Fase 4+
+        Route::get('/dashboard', fn() => view('medico.dashboard'))->name('dashboard');
+        Route::post('/agenda', [AgendaController::class, 'store'])->name('agenda.store');
     });
 
-// ── Admin (middleware: auth + rol admin + 2FA) ─────────────
-Route::prefix("admin")->name("admin.")
-    ->middleware(["auth", "role:admin", "2fa"])
+// ── Admin: middleware real + verificación de 2FA habilitado ───
+Route::prefix('admin')->name('admin.')
+    ->middleware(['auth:sanctum', 'role:admin'])
     ->group(function () {
-        Route::get("/dashboard", fn() => view("admin.dashboard"))->name("dashboard");
-        // CU-05, CU-06, CU-12 — se definen en Fase 4+
+        Route::get('/dashboard', [AdminDashboard::class, 'index'])->name('dashboard');
+
+        Route::get('/medicos', [MedicoController::class, 'index'])->name('medicos.index');
+        Route::get('/medicos/crear', [MedicoController::class, 'create'])->name('medicos.create');
+        Route::post('/medicos', [MedicoController::class, 'store'])->name('medicos.store');
+        Route::patch('/medicos/{medico}/desactivar', [MedicoController::class, 'desactivar'])
+            ->name('medicos.desactivar');
+
+        Route::post('/agenda', [AgendaController::class, 'store'])->name('agenda.store');
+        Route::patch('/agenda/{agenda}/bloquear', [AgendaController::class, 'bloquear'])
+            ->name('agenda.bloquear');
     });
+
+// Estas rutas NO llevan middleware 'auth:sanctum' porque el paciente
+// hace clic en un enlace de correo, posiblemente sin sesión activa.
+// La seguridad la da el TOKEN aleatorio de 64 caracteres en la URL,
+// no la sesión — exactamente como pide el paso 7 del SRS.
+Route::get(
+    '/oferta-reasignacion/{token}/aceptar',
+    [OfertaReasignacionController::class, 'aceptar']
+)->name('oferta.aceptar');
+Route::get(
+    '/oferta-reasignacion/{token}/rechazar',
+    [OfertaReasignacionController::class, 'rechazar']
+)->name('oferta.rechazar');
