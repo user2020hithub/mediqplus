@@ -8,6 +8,7 @@ use App\Http\Controllers\Paciente\CitaController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboard;
 use App\Http\Controllers\Admin\MedicoController;
 use App\Http\Controllers\Admin\AgendaController;
+use App\Http\Controllers\Paciente\OfertaReasignacionController;
 
 
 // ── Autenticación (CU-01, CU-02) ───────────────────────────

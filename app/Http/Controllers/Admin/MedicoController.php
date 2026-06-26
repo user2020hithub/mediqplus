@@ -30,8 +30,9 @@ class MedicoController extends Controller
     }
 
     /**
-     * CU-05 — Alta de médico. Genera credenciales automáticamente y
-     * registra el evento de auditoría con el diff de cambios (RNF-OTR-01).
+     * CU-05 — Alta de médico. Genera credenciales automáticamente, las
+     * envía por correo (CU-09, conectado en la Fase 5) y registra el
+     * evento de auditoría con el diff de cambios (RNF-OTR-01).
      */
     public function store(RegistrarMedicoRequest $request)
     {
@@ -95,11 +96,9 @@ class MedicoController extends Controller
             // Fase 5 (CU-09). Por ahora se registra en el log de Laravel
             // para poder verificar el flujo completo sin depender todavía
             // del servicio de correo.
-            \Log::info('[PLACEHOLDER CU-09] Credenciales generadas para nuevo médico', [
-                'correo' => $usuario->correo_electronico,
-                'password_temporal' => $passwordTemporal, // SOLO visible en el log de desarrollo
-                'token_activacion' => $tokenActivacion,
-            ]);
+            Mail::to($usuario->correo_electronico)
+                ->queue(new CredencialesMedicoMail($usuario, $passwordTemporal, $tokenActivacion));
+
 
             return redirect()->route('admin.medicos.index')
                 ->with('exito', 'Médico registrado exitosamente. (Envío de credenciales pendiente de Fase 5 — revisar log)');
@@ -135,10 +134,16 @@ class MedicoController extends Controller
         $anterior = $medico->only(['estado']);
         $medico->update(['estado' => 'Inactivo']);
 
-        Auditoria::registrar(auth()->id(), 'DESACTIVAR_MEDICO', 'medicos', $medico->id_medico, [
-            'anterior' => $anterior,
-            'nuevo' => ['estado' => 'Inactivo'],
-        ]);
+        Auditoria::registrar(
+            auth()->id(),
+            'DESACTIVAR_MEDICO',
+            'medicos',
+            $medico->id_medico,
+            [
+                'anterior' => $anterior,
+                'nuevo' => ['estado' => 'Inactivo'],
+            ]
+        );
 
         return back()->with('exito', 'Médico desactivado correctamente.');
     }
