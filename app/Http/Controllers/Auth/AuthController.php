@@ -226,8 +226,16 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        // Como el login usa auth('web')->login() (sesión, no token API),
+        // no existe un Access Token real que borrar — currentAccessToken()
+        // devuelve un TransientToken que no tiene método delete().
         auth('web')->logout();
+
+        // Invalida la sesión actual y regenera el token CSRF, por seguridad
+        // (evita que la sesión cerrada se reutilice con "atrás" del navegador).
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
         return redirect()->route('auth.login')->with('exito', 'Sesión cerrada correctamente.');
     }
 }

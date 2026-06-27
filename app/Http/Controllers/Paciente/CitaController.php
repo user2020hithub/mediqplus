@@ -26,6 +26,17 @@ class CitaController extends Controller
      */
     public function buscarDisponibilidad(Request $request)
     {
+        // CORRECCIÓN: si todavía no se envió ninguna búsqueda (el paciente
+        // recién entró desde el botón "Reservar cita" del dashboard), se
+        // muestra el formulario VACÍO — sin validar ni consultar nada.
+        // La vista ya está preparada para esto: usa @if(isset($slots))
+        // y solo muestra resultados cuando esa variable SÍ llega.
+        if (!$request->filled('id_especialidad')) {
+            return view('paciente.citas.disponibilidad');
+        }
+
+        // A partir de aquí, el paciente YA envió el formulario de búsqueda
+        // (llegó id_especialidad) — recién entonces se valida y se consulta.
         $request->validate([
             'id_especialidad' => ['required', 'exists:especialidades,id_especialidad'],
             'id_sede' => ['nullable', 'exists:sedes,id_sede'],
@@ -34,20 +45,17 @@ class CitaController extends Controller
         $slots = Agenda::disponibles()
             ->whereHas('medico', function ($q) use ($request) {
                 $q->where('id_especialidad', $request->id_especialidad)
-                    ->where('estado', 'Activo'); // solo médicos activos (RF-05)
+                    ->where('estado', 'Activo');
             })
             ->when($request->id_sede, fn($q) => $q->where('id_sede', $request->id_sede))
             ->with(['medico', 'sede'])
             ->get();
 
-        // ── Gancho hacia CU-13 (Lista de Espera) ─────────────────────
-        // Si no hay slots disponibles, se invita al paciente a suscribirse
-        // a la lista de espera. La LÓGICA COMPLETA de CU-13 (el motor que
-        // ofrece el cupo automáticamente) se implementa en la Fase 6 —
-        // aquí solo se entrega el mensaje y el enlace, no la suscripción real.
         if ($slots->isEmpty()) {
-            return back()->with('sin_disponibilidad', true)
-                ->with('info', 'No hay horarios disponibles en este momento. Puede suscribirse a la lista de espera.');
+            return redirect()->route('paciente.lista-espera.crear', [
+                'id_especialidad' => $request->id_especialidad,
+                'id_sede' => $request->id_sede,
+            ])->with('info', 'No hay horarios disponibles en este momento. Complete el formulario para suscribirse a la lista de espera.');
         }
 
         return view('paciente.citas.disponibilidad', compact('slots'));

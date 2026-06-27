@@ -9,7 +9,29 @@ use App\Http\Controllers\Admin\DashboardController as AdminDashboard;
 use App\Http\Controllers\Admin\MedicoController;
 use App\Http\Controllers\Admin\AgendaController;
 use App\Http\Controllers\Paciente\OfertaReasignacionController;
+use App\Http\Controllers\Paciente\TriajeController as PacienteTriaje;
+use App\Http\Controllers\Medico\TriajeController as MedicoTriaje;
+use App\Http\Controllers\Paciente\ListaEsperaController;
+use App\Http\Controllers\Paciente\ReprogramacionController;
+use App\Http\Controllers\Admin\ContingenciaController;
 
+
+Route::get('/', function () {
+    $usuario = auth('web')->user();
+
+    if (! $usuario) {
+        return redirect()->route('auth.login');
+    }
+
+    $dashboard = match ($usuario->rol) {
+        'paciente' => 'paciente.dashboard',
+        'medico'   => 'medico.dashboard',
+        'admin'    => 'admin.dashboard',
+        default    => 'auth.login',
+    };
+
+    return redirect()->route($dashboard);
+})->name('home');
 
 // ── Autenticación (CU-01, CU-02) ───────────────────────────
 Route::prefix('auth')->name('auth.')->group(function () {
@@ -42,7 +64,22 @@ Route::prefix('medico')->name('medico.')
     ->group(function () {
         Route::get('/dashboard', fn() => view('medico.dashboard'))->name('dashboard');
         Route::post('/agenda', [AgendaController::class, 'store'])->name('agenda.store');
+        Route::get('/lista-espera/crear', [ListaEsperaController::class, 'mostrarFormulario'])
+            ->name('lista-espera.crear');
+        Route::post('/lista-espera', [ListaEsperaController::class, 'suscribir'])
+            ->name('lista-espera.store');
+        Route::get('/lista-espera/mias', [ListaEsperaController::class, 'misSuscripciones'])
+            ->name('lista-espera.mias');
+        Route::patch('/lista-espera/{listaEspera}/cancelar', [ListaEsperaController::class, 'cancelar'])
+            ->name('lista-espera.cancelar');
     });
+
+// ── Reprogramación (Opción B) — SIN sesión, seguridad vía token ──
+Route::get('/reprogramar/{token}', [ReprogramacionController::class, 'mostrarOpciones'])
+    ->name('paciente.citas.reprogramar');
+Route::post('/reprogramar/{token}', [ReprogramacionController::class, 'confirmar'])
+    ->name('paciente.citas.reprogramar.confirmar');
+
 
 // ── Admin: middleware real + verificación de 2FA habilitado ───
 Route::prefix('admin')->name('admin.')
@@ -59,6 +96,11 @@ Route::prefix('admin')->name('admin.')
         Route::post('/agenda', [AgendaController::class, 'store'])->name('agenda.store');
         Route::patch('/agenda/{agenda}/bloquear', [AgendaController::class, 'bloquear'])
             ->name('agenda.bloquear');
+
+        Route::get('/contingencia', [ContingenciaController::class, 'mostrarFormulario'])
+            ->name('contingencia.crear');
+        Route::post('/contingencia', [ContingenciaController::class, 'ejecutar'])
+            ->name('contingencia.ejecutar');
     });
 
 // Estas rutas NO llevan middleware 'auth:sanctum' porque el paciente
@@ -73,3 +115,21 @@ Route::get(
     '/oferta-reasignacion/{token}/rechazar',
     [OfertaReasignacionController::class, 'rechazar']
 )->name('oferta.rechazar');
+
+Route::prefix('paciente')->name('paciente.')
+    ->middleware(['auth:sanctum', 'role:paciente'])
+    ->group(function () {
+        Route::patch('/citas/{cita}/cancelar', [CitaController::class, 'cancelar'])
+            ->name('citas.cancelar');
+        Route::get('/citas/{cita}/triaje', [PacienteTriaje::class, 'mostrarFormulario'])
+            ->name('triaje.formulario');
+        Route::post('/citas/{cita}/triaje', [PacienteTriaje::class, 'guardar'])
+            ->name('triaje.guardar');
+    });
+
+Route::prefix('medico')->name('medico.')
+    ->middleware(['auth:sanctum', 'role:medico'])
+    ->group(function () {
+        Route::get('/citas/{cita}/triaje', [MedicoTriaje::class, 'verResumen'])
+            ->name('triaje.resumen');
+    });

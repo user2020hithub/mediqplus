@@ -1,9 +1,136 @@
-@import 'tailwindcss';
+/* ── Tipografía Inter — DEBE ser la primera declaración del archivo ── */
+/* Cualquier @import que no sea la primera línea es ignorado por los
+   navegadores y por PostCSS/Vite, sin generar ningún error visible. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap");
 
-@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../storage/framework/views/*.php';
+/* Es la UNICA llamada externa que se mantiene (tipografia),
+ya que Google Fonts no tiene equivalente local sin agregar
+una dependencia npm adicional fuera del alcance academico. */
 
-@theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+
+:root {
+    --mediq-azul-oscuro: #0D47A1;
+    --mediq-azul-medio: #1565C0;
+    --mediq-azul-pale: #E3F2FD;
+    --mediq-verde-salud: #2E7D32;
+    --mediq-verde-claro: #E8F5E9;
+    --mediq-rojo: #C62828;
+    --mediq-rojo-claro: #FFEBEE;
+    --mediq-ambar: #F9A825;
+    --mediq-ambar-claro: #FFF8E1;
+    --mediq-gris-texto: #455A64;
+    --mediq-gris-titulo: #37474F;
+
+    /* Sobrescribe las variables nativas de Bootstrap 5.3 */
+    --bs-primary: var(--mediq-azul-medio);
+    --bs-success: var(--mediq-verde-salud);
+    --bs-danger: var(--mediq-rojo);
+    --bs-warning: var(--mediq-ambar);
+    --bs-font-sans-serif: "Inter", system-ui, sans-serif;
+}
+
+body {
+    background-color: #F8FAFB;
+    color: var(--mediq-gris-texto);
+}
+
+/* ── Sistema de badges semafóricos ─────────────────────────────────── */
+.badge-estado-confirmada,
+.badge-estado-atendida {
+    background-color: var(--mediq-verde-claro);
+    color: var(--mediq-verde-salud);
+    border: 1px solid var(--mediq-verde-salud);
+}
+
+.badge-estado-pendiente_confirmacion,
+.badge-estado-pendiente_reprogramacion {
+    background-color: var(--mediq-ambar-claro);
+    color: #8D6E00;
+    border: 1px solid var(--mediq-ambar);
+}
+
+.badge-estado-cancelada,
+.badge-estado-no_show {
+    background-color: var(--mediq-rojo-claro);
+    color: var(--mediq-rojo);
+    border: 1px solid var(--mediq-rojo);
+}
+
+.badge-estado-triaje_completado {
+    background-color: var(--mediq-azul-pale);
+    color: var(--mediq-azul-oscuro);
+    border: 1px solid var(--mediq-azul-medio);
+}
+
+/* ── Tarjeta de cita reutilizable ───────────────────────────────────── */
+.tarjeta-cita {
+    border-radius: 12px;
+    border: 1px solid #E0E6EA;
+    transition: box-shadow 0.15s ease;
+}
+
+.tarjeta-cita:hover {
+    box-shadow: 0 4px 12px rgba(13, 71, 161, 0.08);
+}
+
+/* ── Accesibilidad: foco visible obligatorio (RNF-OTR-03) ──────────── */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 3px solid var(--mediq-azul-medio);
+    outline-offset: 2px;
+}
+
+/* ── Utilidades para eliminar estilos inline (Fase 7, corrección) ──── */
+.text-mediq-azul-oscuro {
+    color: var(--mediq-azul-oscuro);
+}
+
+.text-mediq-azul-medio {
+    color: var(--mediq-azul-medio);
+}
+
+.text-mediq-verde-salud {
+    color: var(--mediq-verde-salud);
+}
+
+.text-mediq-rojo {
+    color: var(--mediq-rojo);
+}
+
+.text-mediq-ambar {
+    color: var(--mediq-ambar);
+}
+
+.bg-mediq-azul-oscuro {
+    background: var(--mediq-azul-oscuro);
+}
+
+.bg-mediq-azul-pale {
+    background: var(--mediq-azul-pale);
+}
+
+.bg-mediq-gris-claro {
+    background: #F8FAFB;
+}
+
+.bg-blanco-qr {
+    background: white;
+}
+
+.badge-horario {
+    background: var(--mediq-azul-pale);
+    color: var(--mediq-azul-oscuro);
+}
+
+.badge-intensidad {
+    background: var(--mediq-ambar-claro);
+    color: #8D6E00;
+}
+
+.input-codigo-totp {
+    letter-spacing: 0.3em;
+    font-weight: 600;
 }
